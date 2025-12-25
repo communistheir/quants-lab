@@ -167,3 +167,5 @@ cython_debug/
 # Outputs
 app/outputs/
 app/data/cache/
+backtesting_result
+*.db

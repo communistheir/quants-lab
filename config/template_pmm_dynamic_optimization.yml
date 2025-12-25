@@ -1,0 +1,79 @@
+# Template: PMM Dynamic Market Making Optimization
+# 
+# EXECUTION FLOW:
+# 1. candles_downloader runs every 12 hours (fetches latest market data)
+# 2. pmm_dynamic_optimization runs 5 minutes after candles_downloader completes (dependency-based)
+# 
+# TARGET: Optimize market making strategy for BTC spot trading
+# OPTIMIZATION METRIC: Sharpe Ratio (balance return and stability)
+
+tasks:
+  # Step 1: Download and cache candles data
+  candles_downloader:
+    enabled: true
+    task_class: app.tasks.data_collection.candles_downloader_task.CandlesDownloaderTask
+    
+    schedule:
+      type: frequency
+      frequency_hours: 12.0  # Every 12 hours
+      timezone: UTC
+      
+    max_retries: 3
+    retry_delay_seconds: 180
+    timeout_seconds: 3600
+    
+    dependencies: []
+    
+    config:
+      connector_name: "binance"
+      quote_asset: "USDT"
+      selected_pairs:
+        - "BTC-USDT"  # Only download BTC-USDT data for optimization
+      intervals: ["3m", "1h"]  # 3m for optimization, 1h for reference
+      days_data_retention: 30
+      min_notional_size: 1
+    
+    tags:
+      - data_collection
+      - market_making
+      - binance
+      - spot_trading
+
+  # Step 2: Run PMM Dynamic optimization after candles are downloaded
+  # NOTE: This task is ONLY triggered by dependency (not by schedule)
+  # It runs every time candles_downloader completes (every 12 hours)
+  pmm_dynamic_optimization:
+    enabled: true
+    task_class: app.tasks.backtesting.pmm_dynamic_backtesting_task.PMMDynamicBacktestingTask
+      
+    max_retries: 1
+    retry_delay_seconds: 600
+    timeout_seconds: 8553600  # 99 days for optimization
+    
+    # Dependency: Wait for candles to be downloaded
+    # This task will run after candles_downloader completes successfully
+    dependencies:
+      - task_name: candles_downloader
+        on_success: true  # Trigger only when candles download succeeds
+
+    config:
+      # Strategy Configuration
+      connector_name: "binance"
+      resolution: "3m"
+      
+      # Trading Configuration
+      selected_pairs:
+        - "BTC-USDT"
+      
+      # Optimization Configuration
+      n_trials: 100                   # Number of parameter combinations to try (10 trials)
+      lookback_days: 30               # Look back 30 days for backtesting
+      end_time_buffer_hours: 6        # Skip last 6 hours to avoid incomplete data
+      study_name: "pmm_dynamic_v1"    # Name for the optimization study
+      
+    tags:
+      - optimization
+      - market_making
+      - pmm_dynamic
+      - spot_trading
+      - sharpe_ratio_optimization

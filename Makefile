@@ -62,6 +62,8 @@ else
 		-v $(shell pwd)/app/outputs:/quants-lab/app/outputs \
 		-v $(shell pwd)/config:/quants-lab/config \
 		-v $(shell pwd)/app:/quants-lab/app \
+		-v $(shell pwd)/core:/quants-lab/core \
+		-v $(shell pwd)/cli.py:/quants-lab/cli.py \
 		-v $(shell pwd)/research_notebooks:/quants-lab/research_notebooks \
 		--env-file .env \
 		--network host \
@@ -82,6 +84,8 @@ else
 		-v $(shell pwd)/app/outputs:/quants-lab/app/outputs \
 		-v $(shell pwd)/config:/quants-lab/config \
 		-v $(shell pwd)/app:/quants-lab/app \
+		-v $(shell pwd)/core:/quants-lab/core \
+		-v $(shell pwd)/cli.py:/quants-lab/cli.py \
 		-v $(shell pwd)/research_notebooks:/quants-lab/research_notebooks \
 		--env-file .env \
 		--network host \
