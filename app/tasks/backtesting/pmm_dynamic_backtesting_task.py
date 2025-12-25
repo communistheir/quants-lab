@@ -213,7 +213,20 @@ class PMMDynamicBacktestingTask(BaseTask):
                 logging.info("=" * 50)
                 logging.info("To analyze results, run:")
                 for study in generated_studies:
-                    logging.info(f"  python scripts/summarize_optimization.py --study_name {study}")
+                    logging.info(f'docker run --rm \\')
+                    logging.info(f'  -v "$(pwd)/app:/quants-lab/app" \\')
+                    logging.info(f'  -v "$(pwd)/core:/quants-lab/core" \\')
+                    logging.info(f'  -v "$(pwd)/config:/quants-lab/config" \\')
+                    logging.info(f'  -v "$(pwd)/scripts:/quants-lab/scripts" \\')
+                    logging.info(f'  -v "$(pwd)/backtesting_result:/quants-lab/backtesting_result" \\')
+                    logging.info(f'  hummingbot/quants-lab \\')
+                    logging.info(f'  conda run --no-capture-output -n quants-lab \\')
+                    logging.info(f'  python /quants-lab/scripts/summarize_optimization.py \\')
+                    logging.info(f'  --study_name {study} \\')
+                    logging.info(f'  --format html \\')
+                    logging.info(f'  --output_dir backtesting_result \\')
+                    logging.info(f'  --figures_dir backtesting_result/figures')
+                    logging.info("")
                 logging.info("=" * 50)
 
             return {

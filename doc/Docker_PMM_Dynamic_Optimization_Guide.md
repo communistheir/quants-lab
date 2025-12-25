@@ -146,7 +146,104 @@ tasks:
 
 ## 查看优化结果
 
-### 1. 查看容器日志
+### 1. 生成优化分析报告（推荐）
+
+优化完成后，使用 `summarize_optimization.py` 脚本生成可视化HTML报告：
+
+```bash
+docker run --rm \
+  -v "$(pwd)/app:/quants-lab/app" \
+  -v "$(pwd)/core:/quants-lab/core" \
+  -v "$(pwd)/config:/quants-lab/config" \
+  -v "$(pwd)/scripts:/quants-lab/scripts" \
+  -v "$(pwd)/backtesting_result:/quants-lab/backtesting_result" \
+  hummingbot/quants-lab \
+  conda run --no-capture-output -n quants-lab \
+  python /quants-lab/scripts/summarize_optimization.py \
+  --study_name pmm_dynamic_v1_btc_usdt_2025-12-25 \
+  --format html \
+  --output_dir backtesting_result \
+  --figures_dir backtesting_result/figures
+```
+
+**参数说明：**
+- `--study_name`: 优化研究名称（格式：`策略_版本_交易对_日期`）
+- `--format`: 输出格式 (`html`, `md`, 或 `both`)
+- `--output_dir`: 报告保存目录
+- `--figures_dir`: 图表保存目录
+
+**生成的报告包含：**
+
+#### 1. Executive Summary（执行摘要）
+- **🎯 最优参数配置**: 显示最佳试验的所有参数值及中文说明
+- **📊 回测表现**: 夏普比率、净盈亏、最大回撤、胜率、总交易次数、盈亏比
+- **📊 策略质量评估**: 
+  - 夏普比率评级（优秀/良好/一般/偏低）
+  - 盈利能力分析
+  - 回撤控制评估
+  - 胜率分析
+  - 样本量评估
+  - **生产就绪度判断**（是否达到上线标准）
+
+#### 2. Analysis（分析）
+- **Sharpe Distribution（夏普比率分布）**:
+  - 左图：直方图显示所有试验的夏普比率频率分布
+  - 右图：箱线图展示中位数、四分位数和异常值
+  
+- **Parameter Importance（参数重要性）**:
+  - 横向柱状图展示各参数对夏普比率的影响程度
+  - 识别最关键的参数，指导下一轮优化重点
+  
+- **Correlation with Sharpe Ratio（参数相关性）**:
+  - 展示各参数与夏普比率的相关性
+  - 正相关（绿色靠右）→ 参数增大时表现提升
+  - 负相关（绿色靠左）→ 参数减小时表现提升
+
+#### 3. Next Steps & Recommendations（优化建议）
+- **📋 优化方向建议**:
+  - **参数边界调整**: 列出接近搜索边界的参数，建议扩大范围
+  - **参数相关性指导**: 根据相关性建议提高或降低参数范围
+  
+#### 4. Top 5 Trials Detail（前5名试验详情）
+- 展示表现最好的5次试验的所有参数组合
+- 便于对比分析不同参数组合的表现
+
+**报告使用方法：**
+
+1. **查看生成的报告**:
+```bash
+# 在浏览器中打开HTML报告
+open backtesting_result/report_pmm_dynamic_v1_btc_usdt_2025-12-25_*.html
+```
+
+2. **分析优化结果**:
+   - 查看 Executive Summary 了解最优参数和整体表现
+   - 查看策略质量评估，判断是否达到生产就绪标准
+   - 查看 Parameter Importance 识别关键参数
+   - 查看 Correlation 了解参数调整方向
+
+3. **根据建议优化**:
+   - 如果参数接近边界 → 修改配置文件扩大搜索范围
+   - 如果某些参数相关性强 → 调整这些参数的搜索范围
+   - 如果样本量不足 → 增加 `lookback_days` 或 `n_trials`
+   - 如果未达到生产就绪 → 根据评估建议调整策略或参数
+
+4. **迭代优化流程**:
+```bash
+# 第1轮：初始优化
+make trigger-task task=pmm_dynamic_optimization config=template_pmm_dynamic_optimization.yml
+
+# 查看报告，分析结果
+docker run --rm ... python /quants-lab/scripts/summarize_optimization.py ...
+
+# 第2轮：根据建议调整参数范围，重新优化
+# 编辑 config/template_pmm_dynamic_optimization.yml
+# 重新运行优化任务
+
+# 第3轮：继续迭代直到达到生产就绪标准
+```
+
+### 2. 查看容器日志
 
 ```bash
 # 查看特定容器日志
@@ -159,7 +256,7 @@ docker logs quants-lab-template_pmm_dynamic_optimization -n 100
 docker logs quants-lab-template_pmm_dynamic_optimization --since 10m
 ```
 
-### 2. 访问 MongoDB UI
+### 3. 访问 MongoDB UI
 
 - **URL**: http://localhost:28081
 - **用户名**: admin
@@ -171,7 +268,7 @@ docker logs quants-lab-template_pmm_dynamic_optimization --since 10m
 3. 找到集合：`optimization_studies` 或 `optimization_trials`
 4. 查看最佳参数和试验结果
 
-### 3. 最佳参数输出
+### 4. 最佳参数输出
 
 代码中会自动输出最佳参数到日志（见 [pmm_dynamic_backtesting_task.py](../app/tasks/backtesting/pmm_dynamic_backtesting_task.py#L210)）：
 
@@ -197,6 +294,27 @@ Best params for BTC-USDT: {
   'stop_loss': 0.02
 }
 ```
+
+### 5. Optuna Dashboard（可视化参数重要性与试验历史）
+
+在容器内直接读取 SQLite（注意：使用容器内路径）：
+
+```bash
+docker run --rm \
+  -v $(pwd)/app:/quants-lab/app \
+  -v $(pwd)/core:/quants-lab/core \
+  -v $(pwd)/config:/quants-lab/config \
+  -p 8080:8080 \
+  hummingbot/quants-lab \
+  conda run --no-capture-output -n quants-lab \
+  optuna-dashboard sqlite:////quants-lab/app/data/processed/backtesting/optimization_database.db \
+  --host 0.0.0.0 --port 8080
+```
+
+打开浏览器访问：http://localhost:8080
+
+常见问题：
+- 若提示 “unable to open database file”，检查本机路径 `app/data/processed/backtesting/optimization_database.db` 是否存在，并确认已完成至少一次优化任务生成数据库。
 
 ---
 
@@ -422,4 +540,4 @@ print(studies)
 
 ---
 
-**最后更新**: 2025年12月24日
+**最后更新**: 2025年12月25日

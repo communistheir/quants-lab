@@ -66,8 +66,8 @@ tasks:
         - "BTC-USDT"
       
       # Optimization Configuration
-      n_trials: 100                   # Number of parameter combinations to try (10 trials)
-      lookback_days: 30               # Look back 30 days for backtesting
+      n_trials: 10                    # Number of parameter combinations to try (10 trials)
+      lookback_days: 7                # Look back 7 days for backtesting
       end_time_buffer_hours: 6        # Skip last 6 hours to avoid incomplete data
       study_name: "pmm_dynamic_v1"    # Name for the optimization study
       
