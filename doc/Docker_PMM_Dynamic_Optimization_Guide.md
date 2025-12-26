@@ -4,11 +4,11 @@
 
 本文档详细介绍如何通过 Docker 运行 `pmm_dynamic` 策略的参数优化任务。参数优化基于历史回测数据，使用贝叶斯优化算法搜索最佳参数组合。
 
+
 ---
 
-## 快速开始
-
-### 方式一：使用 Makefile（推荐）
+## 部署方式
+### 使用 Makefile
 
 最简单的方式：
 
@@ -23,27 +23,8 @@ make run-db
 make trigger-task task=pmm_dynamic_optimization config=template_pmm_dynamic_optimization.yml
 ```
 
----
 
-## 详细部署方式
-
-### 方式二：直接使用 Docker 命令
-
-如果你想更细致地控制，可以直接运行：
-
-#### 1. 构建镜像
-
-```bash
-docker build -t hummingbot/quants-lab -f Dockerfile .
-```
-
-#### 2. 启动 MongoDB（如果还没启动）
-
-```bash
-docker compose -f docker-compose-db.yml up -d
-```
-
-#### 3. 运行优化任务（前台运行，可看日志）
+#### 运行优化任务（前台运行，可看日志）
 
 ```bash
 docker run --rm \
@@ -61,7 +42,7 @@ docker run --rm \
 
 ---
 
-### 方式三：后台运行（长期运行）
+### 后台运行（长期运行）
 
 如果你想让优化任务在后台持续运行（每12小时自动触发一次）：
 

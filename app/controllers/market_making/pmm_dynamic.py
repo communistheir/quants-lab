@@ -96,9 +96,14 @@ class PMMDynamicController(MarketMakingControllerBase):
         natr = ta.natr(candles["high"], candles["low"], candles["close"], length=self.config.natr_length) / 100
         macd_output = ta.macd(candles["close"], fast=self.config.macd_fast,
                               slow=self.config.macd_slow, signal=self.config.macd_signal)
-        macd = macd_output[f"MACD_{self.config.macd_fast}_{self.config.macd_slow}_{self.config.macd_signal}"]
+        
+        # pandas_ta swaps fast and slow if fast > slow
+        effective_fast = min(self.config.macd_fast, self.config.macd_slow)
+        effective_slow = max(self.config.macd_fast, self.config.macd_slow)
+        
+        macd = macd_output[f"MACD_{effective_fast}_{effective_slow}_{self.config.macd_signal}"]
         macd_signal = - (macd - macd.mean()) / macd.std()
-        macdh = macd_output[f"MACDh_{self.config.macd_fast}_{self.config.macd_slow}_{self.config.macd_signal}"]
+        macdh = macd_output[f"MACDh_{effective_fast}_{effective_slow}_{self.config.macd_signal}"]
         macdh_signal = macdh.apply(lambda x: 1 if x > 0 else -1)
         max_price_shift = natr / 2
         price_multiplier = ((0.5 * macd_signal + 0.5 * macdh_signal) * max_price_shift).iloc[-1]
